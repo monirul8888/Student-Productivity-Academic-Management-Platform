@@ -5,19 +5,26 @@ from app.database import get_db
 from app.models.assignment import Assignment
 from app.models.course import Course
 from app.schemas.assignment import AssignmentCreate, AssignmentUpdate, AssignmentResponse
+from app.utils.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter()
+
 
 # Create assignment
 @router.post("/", response_model=AssignmentResponse)
 def create_assignment(
     data: AssignmentCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    # Optional: verify course exists
-    course = db.query(Course).filter(Course.id == data.course_id).first()
+    # Verify the course exists and belongs to the current user
+    course = db.query(Course).filter(
+        Course.id == data.course_id,
+        Course.user_id == current_user.id
+    ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Course not found or not owned by user")
 
     assignment = Assignment(
         title=data.title,
@@ -33,10 +40,15 @@ def create_assignment(
     return assignment
 
 
-# List all assignments
+# List all assignments of the current user
 @router.get("/", response_model=list[AssignmentResponse])
-def get_assignments(db: Session = Depends(get_db)):
-    assignments = db.query(Assignment).all()
+def get_assignments(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    assignments = db.query(Assignment).join(Course).filter(
+        Course.user_id == current_user.id
+    ).all()
     return assignments
 
 
@@ -45,11 +57,15 @@ def get_assignments(db: Session = Depends(get_db)):
 def update_assignment(
     assignment_id: int,
     data: AssignmentUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
+    assignment = db.query(Assignment).join(Course).filter(
+        Assignment.id == assignment_id,
+        Course.user_id == current_user.id
+    ).first()
     if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment not found")
+        raise HTTPException(status_code=404, detail="Assignment not found or not owned by user")
 
     if data.title is not None:
         assignment.title = data.title
@@ -68,11 +84,15 @@ def update_assignment(
 @router.delete("/{assignment_id}")
 def delete_assignment(
     assignment_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
+    assignment = db.query(Assignment).join(Course).filter(
+        Assignment.id == assignment_id,
+        Course.user_id == current_user.id
+    ).first()
     if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment not found")
+        raise HTTPException(status_code=404, detail="Assignment not found or not owned by user")
 
     db.delete(assignment)
     db.commit()

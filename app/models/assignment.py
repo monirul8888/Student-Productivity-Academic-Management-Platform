@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
-
 class Assignment(Base):
     __tablename__ = "assignments"
 
@@ -12,4 +11,5 @@ class Assignment(Base):
     status = Column(String, default="pending")
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
 
+    # Relationship back to course
     course = relationship("Course", back_populates="assignments")
