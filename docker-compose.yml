@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: studyflow
+      POSTGRES_PASSWORD: studyflow123
+      POSTGRES_DB: studyflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres+psycopg2://studyflow:studyflow123@db:5432/studyflow_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
