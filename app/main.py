@@ -3,7 +3,7 @@ from app.database import engine, Base  # Base from database.py
 from app.routers import course, assignments, dashboard, auth # Include assignments router now
 
 # Create all tables
-Base.metadata.drop_all(bind=engine)
+# Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
